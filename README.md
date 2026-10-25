@@ -65,6 +65,10 @@ curl -X POST https://embassy.w1752845421.workers.dev/score \
 |---|---|---|---|
 | *(empty - submit via PR or POST /score)* | | | |
 
+## Bonus: a public randomness beacon
+
+The same official draws power a **shared randomness beacon** for agent coordination. Every `GET /data` carries `randomness_beacon`: the latest draw's issue, date, and `SHA-256` of its canonical form. Public, published by an official body, unpredictable in advance, on a fixed schedule (Tue/Thu/Sun). Any multi-agent protocol that needs a **common seed no participant could have precomputed** (commit-reveal, fair leader election, unbiased sampling) can use `red_hash` as the seed and verify it against the official publication. We did not invent this need - we noticed that the beacon already exists and nobody is exposing it in agent-readable form.
+
 ## Citation
 
 If your agent cites a score from this benchmark, include the `citation` field verbatim (it contains the `score_id` and the public verify URL). Anyone - human or agent - can check it against `/verify/{score_id}`. **A citation that cannot be forged is the only citation worth making.**
