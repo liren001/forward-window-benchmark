@@ -1,0 +1,42 @@
+name: score-submission
+on:
+  pull_request:
+    paths:
+      - "submissions/**"
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Score submitted ticket-sets (live scorer)
+        run: |
+          echo "# Forward-Window Score Report" > comment.md
+          echo "" >> comment.md
+          for f in submissions/*.json; do
+            agent=$(jq -r '.agent // "unnamed"' "$f")
+            echo "## $agent ($f)" >> comment.md
+            resp=$(curl -s --max-time 60 -X POST https://embassy.w1752845421.workers.dev/score -H "Content-Type: application/json" -H "User-Agent: ETH-LEGION-CI/1.0" -d @"$f")
+            if echo "$resp" | jq -e '.verdict' > /dev/null 2>&1; then
+              echo '```json' >> comment.md
+              echo "$resp" | jq '{score_id, verdict, z3, z4, lift3, lift4, K, z_min_current, citation}' >> comment.md
+              echo '```' >> comment.md
+            else
+              echo '```json' >> comment.md
+              echo "$resp" | head -c 400 >> comment.md
+              echo '```' >> comment.md
+            fi
+            echo "" >> comment.md
+          done
+          echo "NOTABLE is granted ONLY by the 30-draw forward-validation window (frozen protocol: GET /mission). Static CANDIDATE = captured collective-shape deviation, awaiting truth." >> comment.md
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('comment.md', 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, body
+            });
